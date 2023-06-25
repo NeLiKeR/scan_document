@@ -1,6 +1,19 @@
-import re
+import tabula
+import pandas as pd
 
-string = '30 838.33 20% 6 167.67 37 006.00'
-last_element = re.findall(r'\b\d+\s\d+\.\d{2}\b', string)[-1]
+# Path to your PDF file
+pdf_path = r'C:\Users\566a5\PycharmProjects\Работа\new_scan_doc\tatenergosbyt\50 ав (2).pdf'
 
-print(last_element)  # Output: 37 006.00
+# Path to your PDF file
+
+# Open the PDF file
+tables = tabula.read_pdf(pdf_path, pages="all")
+
+# Iterate over extracted tables
+for table in tables:
+    # Convert the table to a Pandas DataFrame
+    df = pd.DataFrame(table)
+
+    # Perform further operations with the DataFrame
+    # For example, you can print the table or manipulate the data
+    print(df)

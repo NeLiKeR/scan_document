@@ -23,7 +23,10 @@ def check_tatenergosbyt(path):
     date_of_signing = None
     for page in range(len(pdf_document.pages)):
         text = pdf_document.pages[page].extract_text()
-        text = text.replace(r'\xa0', ' ').replace(' ', ' ')
+        text = text.replace(r'\xa0', ' ').replace(r' \n', '').replace(' ', ' ').replace('\n', '>>>>>>><<<<<')
+        # text = " ".join(re.findall(r'[A-Za-z]+', text))
+        text = re.sub(r"\s+", " ", text)
+        text = text.replace('>>>>>>><<<<<', '\n')
         # print(text)
         # pattern_for_invoice = r'СЧЕТ \s+(.+?)от (\d+ \S+ \d+ г\.)'
         pattern_for_check = r'СЧЕТ (.*)'
@@ -94,12 +97,12 @@ def check_tatenergosbyt(path):
             print(matches_for_inn_kpp)
             for i in matches_for_inn_kpp:
                 if 'получателя' in i:
-                    inn_kpp = i.split('  ')[1]
-                    inn_contragent, kpp_contragent = inn_kpp.split(' / ')
+                    # inn_kpp =
+                    # print(inn_kpp)
+                    inn_contragent, kpp_contragent = i.split(' ')[1], i.split(' ')[3]
                     print(inn_contragent, kpp_contragent)
                 elif 'плательщика' in i:
-                    inn_payer = i.split('  ')[1]
-                    inn_payer = inn_payer.split(' / ')[0]
+                    inn_payer = i.split(' ')[1]
                     print(inn_payer)
                 # print(i)
         else:
@@ -136,7 +139,7 @@ def check_tatenergosbyt(path):
         insert_into_check(name_table, nomer, nomer_date, contragent, inn_contragent, kpp_contragent, payer, inn_payer,
                           contract, contract_date, product, nds, result_price, checking_account, date_of_signing)
     else:
-        print('MB error')
+        print('MB error check_tatenergosbyt')
         print(name_table, nomer, nomer_date, contragent, inn_contragent, kpp_contragent, payer, inn_payer,
                           contract, contract_date, product, nds, result_price, checking_account, date_of_signing)
        # first_nomer = text.find('№')+2
@@ -172,8 +175,10 @@ def check_departament(path):
     date_of_signing = None
     for page in range(len(pdf_document.pages)):
         text = pdf_document.pages[page].extract_text()
-        text = text.replace(r'\xa0', ' ').replace(' ', ' ')
-        # print(text)
+        text = text.replace(r'\xa0', ' ').replace(r' \n', '').replace(' ', ' ').replace('\n', '>>>>>>><<<<<')
+        # text = " ".join(re.findall(r'[A-Za-z]+', text))
+        text = re.sub(r"\s+", " ", text)
+        text = text.replace('>>>>>>><<<<<', '\n')
 
         pattern_for_contragent = r'Поставщик:ИНН (.*?), КПП (.*?),(.*?)\n'
         match_for_contragent= re.search(pattern_for_contragent, text)
@@ -243,13 +248,310 @@ def check_departament(path):
         insert_into_check(name_table, nomer, nomer_date, contragent, inn_contragent, kpp_contragent, payer, inn_payer,
                           contract, contract_date, product, nds, result_price, checking_account, date_of_signing)
     else:
-        print('MB error')
+        print('MB error check_departament')
         print(name_table, nomer, nomer_date, contragent, inn_contragent, kpp_contragent, payer, inn_payer,
               contract, contract_date, product, nds, result_price, checking_account, date_of_signing)
 
 
+def check_vodokanal(path):
+    print('СЧЕТ Водоканал')
+    pdf_document = PyPDF2.PdfReader(path)
+    name_table = 'vodokanal'
+    nomer = None
+    nomer_date = None
+    contragent = 'Водоканал'
+    inn_contragent = None
+    kpp_contragent = None
+    payer = None
+    inn_payer = None
+    contract = None
+    contract_date = None
+    product = None
+    nds = None
+    result_price = None
+    checking_account = None
+    date_of_signing = None
+    for page in range(len(pdf_document.pages)):
+        text = pdf_document.pages[page].extract_text()
+        text = text.replace(r'\xa0', ' ').replace(r' \n', '').replace(' ', ' ').replace('\n', '>>>>>>><<<<<')
+        text = re.sub(r"\s+", " ", text)
+        text = text.replace('>>>>>>><<<<<', '\n')
+        # print(text)
 
+        pattern_for_nomer = r'Счет на оплат у № (.*?) о т (.*?)\n'
+        match_for_nomer = re.search(pattern_for_nomer, text)
+        if match_for_nomer:
+            print(1)
+            nomer, nomer_date = match_for_nomer.group(1), match_for_nomer.group(2)
+            print(nomer, nomer_date)
+
+        pattern_for_inn_contragent = r'Пост авщик: (.*?), ИНН (.*?), КПП (.*?),'
+        match_for_inn_contragent = re.search(pattern_for_inn_contragent, text)
+        if match_for_inn_contragent:
+            print(2)
+            inn_contragent, kpp_contragent = match_for_inn_contragent.group(1), match_for_inn_contragent.group(2)
+            print(inn_contragent, kpp_contragent)
+
+        pattern_for_payer = r'Покупатель: (.*?), ИНН (.*?), КПП (.*?),'
+        match_for_payer = re.search(pattern_for_payer, text)
+        if match_for_payer:
+            print(3)
+            payer, inn_payer = match_for_payer.group(1), match_for_payer.group(2)
+            print(payer, inn_payer)
+
+        pattern_for_product = r'изм.Цена Сумма\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n'
+        match_for_product = re.search(pattern_for_product, text)
+        if match_for_product:
+            print(4)
+            product = []
+            # print(match_for_product.group(0))
+            for i in range(1, 6):
+                if 'Итого' in match_for_product.group(i):
+                    break
+                product.append(match_for_product.group(i))
+            product = f'{product}'
+            print(product)
+
+        pattern_for_result_price = r'Сумма НДС: (.*?)\nВсег о к оплате: (.*?)\n'
+        match_for_result_price = re.search(pattern_for_result_price, text)
+        if match_for_result_price:
+            print(5)
+            nds, result_price = match_for_product.group(1), match_for_result_price.group(2)
+            print(nds, result_price)
+
+        pattern_for_checking_account = r'Счет № (.*?)\n'
+        match_for_checking_account = re.search(pattern_for_checking_account, text)
+        if match_for_checking_account:
+            print(6)
+            checking_account = match_for_checking_account.group(1)
+            print(checking_account)
+
+        pattern_for_date_of_signing = r'СЕРТИФИКАТ ПОДПИСАН\n(.*?)\n(.*?)\n'
+        match_for_date_signing = re.findall(pattern_for_date_of_signing, text)
+        if match_for_date_signing:
+            print(7)
+            print(match_for_date_signing)
+            date_of_signing = match_for_date_signing[-1]
+            for i in date_of_signing:
+                if '.' in i:
+                    i = i.split('.')
+                    day, month, year = i[0][-2:], i[1], i[2][0:4]
+                    date_of_signing = '.'.join([day, month, year])
+            print(date_of_signing)
+        if nomer:
+            insert_into_check(name_table, nomer, nomer_date, contragent, inn_contragent, kpp_contragent, payer,
+                              inn_payer,
+                              contract, contract_date, product, nds, result_price, checking_account, date_of_signing)
+        else:
+            print('MB error check_tatenergosbyt')
+            print(name_table, nomer, nomer_date, contragent, inn_contragent, kpp_contragent, payer, inn_payer,
+                  contract, contract_date, product, nds, result_price, checking_account, date_of_signing)
+
+
+def check_kazenergo(path):
+    print('СЧЕТ Казэнерго')
+    pdf_document = PyPDF2.PdfReader(path)
+    name_table = 'kazenergo'
+    contragent = 'Казэнерго'
+    nomer = None
+    nomer_date = None
+    inn_contragent = None
+    kpp_contragent = None
+    payer = None
+    inn_payer = None
+    contract = None
+    contract_date = None
+    product = None
+    nds = None
+    result_price = None
+    checking_account = None
+    date_of_signing = None
+    for page in range(len(pdf_document.pages)):
+        text = pdf_document.pages[page].extract_text()
+        text = text.replace(r'\xa0', ' ').replace(r' \n', '').replace(' ', ' ').replace('\n', '>>>>>>><<<<<')
+        # text = " ".join(re.findall(r'[A-Za-z]+', text))
+        text = re.sub(r"\s+", " ", text)
+        text = text.replace('>>>>>>><<<<<', '\n')
+        # print(text)
+
+        pattern_for_nomer = r'Счет № (.*?) от (.*?).\n'
+        match_for_nomer = re.search(pattern_for_nomer, text)
+        if match_for_nomer:
+            print(1)
+            nomer, nomer_date = match_for_nomer.group(1), match_for_nomer.group(2)
+            print(nomer, nomer_date)
+
+        pattern_for_payer = r'Покупатель:(.*?)\n'
+        match_for_payer = re.search(pattern_for_payer, text)
+        if match_for_payer:
+            print(2)
+            payer = match_for_payer.group(1)
+            print(payer)
+
+        pattern_for_contragent = r'ИНН / КПП продавца: (.*?) / (.*?)\n'
+        match_for_contragent = re.search(pattern_for_contragent, text)
+        if match_for_contragent:
+            print(3)
+            inn_contragent = match_for_contragent.group(1)
+            kpp_contragent = match_for_contragent.group(2)
+            print(inn_contragent)
+            print(kpp_contragent)
+
+        pattern_for_inn_payer = r'ИНН / КПП покупателя: (.*?) / (.*?)\n'
+        match_for_inn_payer = re.search(pattern_for_inn_payer, text)
+        if match_for_inn_payer:
+            print(3)
+            inn_payer = match_for_inn_payer.group(1).replace(' ', '')
+            print(inn_payer)
+
+        pattern_for_checking_account = r'РС (.*?) '
+        match_for_checking_account = re.search(pattern_for_checking_account, text)
+        if match_for_checking_account:
+            print(4)
+            checking_account = match_for_checking_account.group(1)
+            print(checking_account)
+
+        pattern_for_dogovor = r'Договор: (.*?) от (.*?) Контракт: (.*?)\n'
+        match_for_dogovor = re.search(pattern_for_dogovor, text)
+        if match_for_dogovor:
+            print(5)
+            dogovor = match_for_dogovor.group(1)
+            date_dogovor = match_for_dogovor.group(2)
+            contract = match_for_dogovor.group(3)
+            print(dogovor, date_dogovor, contract)
+
+        pattern_for_reuslt_price = r'Всего к оплате (.*?),(.*?) (.*?),(.*?) (.*?)\n'
+        match_for_result_price = re.search(pattern_for_reuslt_price, text)
+        if match_for_result_price:
+            print(6)
+            nds = str(match_for_result_price.group(3) + '.' + match_for_result_price.group(4)).replace(' ', '')
+            result_price = match_for_result_price.group(5).replace(' ', '')
+            print(result_price, nds)
+        ''''''''
+        pattern_for_product = r'1 2 3 4 5 6 7 8 9 10 11\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n(.*?)\n'
+        match_for_product = re.search(pattern_for_product, text)
+        if match_for_product:
+            print(7)
+            for i in range(1, 7):
+                if 'C учетом долга' in match_for_product.group(i):
+                    break
+                print(match_for_product.group(i))
+        ''''''''
+        pattern_for_date_of_signing = r'СЕРТИФИКАТ ПОДПИСАН\n(.*?)\n(.*?)\n'
+        match_for_date_signing = re.findall(pattern_for_date_of_signing, text)
+        if match_for_date_signing:
+            print(9)
+            print(match_for_date_signing)
+            date_of_signing = match_for_date_signing[-1]
+            for i in date_of_signing:
+                if '.' in i:
+                    i = i.split('.')
+                    day, month, year = i[0][-2:], i[1], i[2][0:4]
+                    date_of_signing = '.'.join([day, month, year])
+            print(date_of_signing)
+
+        if nomer:
+            insert_into_check(name_table, nomer, nomer_date, contragent, inn_contragent, kpp_contragent, payer,
+                              inn_payer,
+                              contract, contract_date, product, nds, result_price, checking_account, date_of_signing)
+        else:
+            print('MB error check_departament')
+            print(name_table, nomer, nomer_date, contragent, inn_contragent, kpp_contragent, payer, inn_payer,
+                  contract, contract_date, product, nds, result_price, checking_account, date_of_signing)
+
+
+def check_tatenergo(path):
+    print('СЧЕТ Татэнерго')
+    pdf_document = PyPDF2.PdfReader(path)
+    name_table = 'tatenergo'
+    contragent = 'ТАТЭНЕРГО'
+    nomer = None
+    nomer_date = None
+    inn_contragent = None
+    kpp_contragent = None
+    payer = None
+    inn_payer = None
+    contract = None
+    contract_date = None
+    product = None
+    nds = None
+    result_price = None
+    checking_account = None
+    date_of_signing = None
+    for page in range(len(pdf_document.pages)):
+        text = pdf_document.pages[page].extract_text()
+        text = text.replace(r'\xa0', ' ').replace(r' \n', '').replace(' ', ' ').replace('\n', '>>>>>>><<<<<')
+        # text = " ".join(re.findall(r'[A-Za-z]+', text))
+        text = re.sub(r"\s+", " ", text)
+        text = text.replace('>>>>>>><<<<<', '\n')
+        print(text)
+        pattern_for_nomer = r'СЧЕТ № (.*?) от (.*?).\n'
+        match_for_nomer = re.search(pattern_for_nomer, text)
+        if match_for_nomer:
+            print(1)
+            nomer, nomer_date = match_for_nomer.group(1), match_for_nomer.group(2)
+            print(nomer, nomer_date)
+
+        pattern_for_contragent = r'ИНН/КПП получателя: (.*?) (.*?)\n'
+        match_for_contragent = re.search(pattern_for_contragent, text)
+        if match_for_contragent:
+            print(2)
+            inn_contragent = match_for_contragent.group(1)
+            kpp_contragent = match_for_contragent.group(2)
+            print(inn_contragent)
+            print(kpp_contragent)
+
+        pattern_for_payer = r'(.*?)\nПлательщик:\n'
+        match_for_payer = re.search(pattern_for_payer, text)
+        if match_for_payer:
+            print(2)
+            payer = match_for_payer.group(1)
+            print(payer)
+
+        pattern_for_inn_payer = r'ИНН/КПП плательщика: (.*?) '
+        match_for_inn_payer = re.search(pattern_for_inn_payer, text)
+        if match_for_inn_payer:
+            print(3)
+            inn_payer = match_for_inn_payer.group(1)
+            print(inn_payer)
+
+        pattern_for_dogovor = r'Договор теплоснабжения № (.*?) от (.*?).\n'
+        match_for_dogovor = re.search(pattern_for_dogovor, text)
+        if match_for_dogovor:
+            print(4)
+            dogovor = match_for_dogovor.group(1)
+            date_dogovor = match_for_dogovor.group(2)
+            print(dogovor, date_dogovor)
+
+        pattern_for_checking_account = r'р/с (.*?) '
+        match_for_checking_account = re.search(pattern_for_checking_account, text)
+        if match_for_checking_account:
+            print(5)
+            checking_account = match_for_checking_account.group(1)
+            print(checking_account)
+
+        pattern_for_code = r'напервойпозиции код(.*?) '
+        match_for_code = re.search(pattern_for_code, text)
+        if match_for_code:
+            print(6)
+            code = match_for_code.group(1)
+            print(code)
+        #
+        if nomer:
+            insert_into_check(name_table, nomer, nomer_date, contragent, inn_contragent, kpp_contragent, payer,
+                              inn_payer,
+                              contract, contract_date, product, nds, result_price, checking_account, date_of_signing)
+        else:
+            print('MB error check_departament')
+            print(name_table, nomer, nomer_date, contragent, inn_contragent, kpp_contragent, payer, inn_payer,
+                  contract, contract_date, product, nds, result_price, checking_account, date_of_signing)
 # check_tatenergosbyt(r'C:\Users\566a5\PycharmProjects\Работа\new_scan_doc\tatenergosbyt\50 ав (2).pdf')
 # check_tatenergosbyt(r'C:\Users\566a5\PycharmProjects\Работа\new_scan_doc\tatenergosbyt\110 э сч 05.23.pdf')
 
 # check_departament(r'C:\Users\566a5\PycharmProjects\Работа\new_scan_doc\departament\152.22.23 Счет ЦБ00001196 от 31.01.2023 3098790,00.pdf')
+
+# check_vodokanal(r'C:\Users\566a5\PycharmProjects\Работа\new_scan_doc\vodokanal\110 в сч 05.23.pdf')
+
+# check_kazenergo(r'C:\Users\566a5\PycharmProjects\Работа\new_scan_doc\kazenergo\3 гим сч.pdf')
+
+# check_tatenergo(r'C:\Users\566a5\PycharmProjects\Работа\new_scan_doc\tatenergo\азино т сч 05.23г.pdf')
